@@ -1,0 +1,782 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// =====================
+/// HỆ THỐNG NGƯỜI DÙNG
+/// =====================
+model SYS_USERS {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  id            BigInt   @id @default(autoincrement())
+  email         String   @unique @db.VarChar(100)
+  username      String   @db.VarChar(50)
+  password      String   @db.VarChar(200)
+  expiredate    DateTime? @db.Timestamp(6)
+  birthday      DateTime? @db.Timestamp(6)
+  address       String?  @db.VarChar(500)
+  telphone      String?  @db.VarChar(50)
+  isactive      Boolean  @default(true)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+}
+
+model SYS_USERGROUPS {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  usergroupid   String   @id @db.VarChar(50) // 'ADMIN', 'USER'
+  usergroupname String   @db.VarChar(100) // 'Quản trị hệ thống', 'Người dùng'
+  note   String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([usergroupid])
+}
+
+model SYS_USER_BRANCHES {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  userid        Int?   
+  officescope   String?   @db.Char(1)  // 'A'/ 'B' / 'T' / 'N'
+  role          String?   @db.VarChar(20) // đợi người dùng phân quyền'admin' | 'user'
+  branchid      String?   @db.VarChar(50)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+}
+
+model SYS_ACCESSRIGHT {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  userid        Int      @id
+  usergroupid   String   @db.VarChar(50)
+  officescope   String?  @db.Char(1)  // 'A'/ 'B' / 'T' / 'N'
+  menuid        String?  @db.VarChar(50)
+  isview        Boolean  @default(false)
+  isaddnew      Boolean  @default(false)
+  ismodify      Boolean  @default(false)
+  isdelete      Boolean  @default(false)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([userid, usergroupid, menuid])
+}
+
+model SYS_MENU {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  menuid       String   @id @db.VarChar(50)
+  menuname     String   @db.VarChar(100)
+  path         String?  @db.VarChar(255) // URL hoặc route
+  icon         String?  @db.VarChar(50)  // tên icon nếu có
+  parentid     String?  @db.VarChar(50)  // cho phép tạo menu cha - con
+  isactive     Boolean  @default(true)
+  orderby     Int?     // sắp xếp menu
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([parentid, isactive])
+}
+
+/// =====================
+/// DANH MỤC CHUNG
+/// =====================
+model CM_BRANCH {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  officescope  String?   @db.Char(1)  // 'A'/ 'B' / 'T' / 'N'
+  officename  String?   @db.VarChar(10)  // 'ALL'/ 'BAC' / 'TRUNG' / 'NAM'
+  branchid    String   @id @db.VarChar(50)
+  branchname  String   @db.VarChar(100)
+  address     String?  @db.VarChar(255)
+  coordinates String?  @db.VarChar(255) // kinh độ, vĩ độ
+  totalemployee    Int? 
+  totalsale Int?
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([branchid])
+}
+
+model CM_BRAND {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  brandid     String   @id @db.VarChar(50)
+  brandname   String   @db.VarChar(100)
+  note        String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([brandid])
+}
+
+model CM_UNIT {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  unitid      String   @id @db.VarChar(50)
+  unitname    String   @db.VarChar(100)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([unitid])
+}
+
+model CM_PAYMENT {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  paymentid    String   @id @db.VarChar(50)
+  paymentname  String   @db.VarChar(100)
+  paymenttype         String   @db.VarChar(20)  // 'FIAT' | 'CRYPTO' | 'OTHER'
+  currencyid   String?  @db.VarChar(50)  // liên kết CM_CURRENCY
+  note         String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([paymentid])
+}
+
+model CM_CURRENCY {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  currencyid  String   @id @db.VarChar(50)
+  currencyname String  @db.VarChar(100)
+  symbol      String?  @db.VarChar(10)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([currencyid])
+}
+
+model CM_DISCOUNT {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  discountid  String   @id @db.VarChar(50)
+  note        String?  @db.VarChar(255)
+  deal        Int?
+  startdate   DateTime? @db.Timestamp(6)
+  enddate     DateTime? @db.Timestamp(6)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([discountid])
+}
+
+model CM_RAM {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  ramid        String   @id @db.VarChar(50) //Mã tự tăng RAMTYPE tự tăng 001
+  ramname      String   @db.VarChar(100)
+  note         String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([ramid])
+}
+
+model CM_DRIVE {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  driveid      String   @id @db.VarChar(50) // SSDTYPE || HDDTYPE tự tăng 001
+  drivename    String   @db.VarChar(100) // Ví dụ: 512GB SSD, 1TB NVMe
+  note         String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([driveid])
+}
+
+model CM_COLOR {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  colorid      String   @id @db.VarChar(50)
+  colorname    String   @db.VarChar(50) // Ví dụ: Silver, Space Gray, Black
+  hexcode      String?  @db.VarChar(10) // Mã màu HEX nếu cần hiển thị UI
+  note         String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+  
+  @@index([colorid])
+}
+
+model CM_TAX {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  taxid        String   @id @db.VarChar(50) //TAX + taxrate
+  taxname      String   @db.VarChar(100)
+  taxrate      Float     // 10%, 5%, 0%
+  applyto      String?   // 'ITEM' hoặc 'BRANCH' nếu cần áp dụng riêng
+  note         String?   @db.VarChar(255)
+
+  createdby    String   @db.VarChar(20)
+  createdtime  DateTime @db.Timestamp(6)
+  modifiedby   String?  @db.VarChar(20)
+  modifiedtime DateTime? @db.Timestamp(6)
+  
+  @@index([taxid])
+}
+
+model CM_SERVICE {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  serviceid     String   @id @db.VarChar(50) // Lấy 3 chữ cái trong cột servicecategory và cho tăng WAR và tự động tăng 001
+  servicename   String   @db.VarChar(100)   // Tên dịch vụ: bảo hành, đổi trả, cài đặt
+  servicetype   String   @db.VarChar(50)
+  servicecategory String @db.VarChar(50)   // Nhóm dịch vụ: 'WARRANTY', 'RETURN', 'INSTALL', 'DELIVERY'
+  serviceprovider String?  @db.VarChar(50)  // INTERNAL / THIRD_PARTY
+  regionid          String?  @db.VarChar(20)  // HCM_INNER / HCM_OUTER / ALL
+  note          String?  @db.VarChar(255)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([serviceid])
+}
+
+model CM_TARIFF {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  tariffid      String   @id @db.VarChar(50) // TAW/Bảo hành , TAR/Đổi trả , TAI/Cài đặt , TAD/Giao hàng + tự tăng 001
+  serviceid     String   @db.VarChar(50)       // Liên kết CM_SERVICE
+  unitprice     Decimal  @db.Decimal(15,3)    // Giá dịch vụ
+  currencyid    String?  @db.VarChar(50)      // Tiền tệ áp dụng
+  taxid         String?  @db.VarChar(50)      // Thuế áp dụng (tham chiếu CM_TAX)
+  regionid          String?  @db.VarChar(20)  // HCM_INNER / HCM_OUTER / ALL
+  regionname          String?  @db.VarChar(50)  // nội thành / ngoại thành
+  serviceprovider String?  @db.VarChar(50)  // nội bộ / bên thứ 3
+  partnercontractid String? @db.VarChar(50) // nếu có hợp đồng với bên vận chuyển
+  minquantity   Int?                              // Số lượng tối thiểu áp dụng, nếu cần
+  maxquantity   Int?                              // Số lượng tối đa áp dụng, nếu cần
+  validfrom     DateTime? @db.Timestamp(6)       // Ngày bắt đầu áp dụng cước
+  validto       DateTime? @db.Timestamp(6)       // Ngày kết thúc áp dụng cước
+  note          String?  @db.VarChar(255)     // Mô tả chi tiết cước phí
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([serviceid, currencyid, taxid])
+}
+
+model CM_SALE {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  salesid     String   @id @db.VarChar(50) // SALE + Tên viết tắt + số tự tăng nếu trùng 01
+  salesname    String   @db.VarChar(150)
+  positionscope    String?  @db.Char(2) //NV/TP/QL
+  positionname    String?  @db.VarChar(100) // ví dụ: "Nhân viên", "Trưởng phòng"
+  phone       String?  @db.VarChar(20)
+  email       String?  @db.VarChar(100)
+  citizenid        String   @db.VarChar(20)
+  birthday      DateTime? @db.Timestamp(6)
+  address       String?  @db.VarChar(500)
+  note         String?  @db.VarChar(255)
+  isactive    Boolean  @default(true)     // Nếu nhân viên ko còn hoạt động thì update = false
+
+  createdby    String   @db.VarChar(20)
+  createdtime  DateTime @db.Timestamp(6)
+  modifiedby   String?  @db.VarChar(20)
+  modifiedtime DateTime? @db.Timestamp(6)
+  
+  @@index([salesid])
+}
+
+model CM_TECHNICAL {
+  rowguid        String   @default(uuid()) @db.Uuid @unique
+  technicalsid   String   @id @db.VarChar(50) // TECH + Tên viết tắt + số tự tăng nếu trùng 01
+  technicalname  String   @db.VarChar(150)
+  positionscope  String?  @db.Char(2)        // NV/TP/QL
+  positionname   String?  @db.VarChar(100)   // Nhân viên, Trưởng nhóm, Quản lý
+  phone          String?  @db.VarChar(20)
+  email          String?  @db.VarChar(100)
+  citizenid      String   @db.VarChar(20)    // CCCD
+  birthday       DateTime? @db.Timestamp(6)
+  address        String?  @db.VarChar(500)
+  note           String?  @db.VarChar(255)
+  isactive       Boolean  @default(true)     // ngưng hoạt động = false
+
+  createdby      String   @db.VarChar(20)
+  createdtime    DateTime @db.Timestamp(6)
+  modifiedby     String?  @db.VarChar(20)
+  modifiedtime   DateTime? @db.Timestamp(6)
+
+  @@index([technicalsid])
+}
+
+model CM_CUSTOMER {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  customerid    String   @id @db.VarChar(50)       // CUSI || CUSC +NVA+001
+  customername  String   @db.VarChar(150)          // Tên khách hàng hoặc công ty
+  customertype  String   @db.Char(1)               // I = Individual, C = Company
+  contactname   String?  @db.VarChar(100)          // Người liên hệ chính (nếu là công ty)
+  phone         String?  @db.VarChar(20)
+  email         String?  @db.VarChar(100)
+  citizenid     String?  @db.VarChar(20)           // CCCD (nếu cá nhân)
+  taxid         String?  @db.VarChar(50)           // MST (nếu doanh nghiệp)
+  birthday      DateTime? @db.Timestamp(6)         // Ngày sinh (nếu cá nhân)
+  address       String?  @db.VarChar(500)
+  note          String?  @db.VarChar(255)
+  isactive      Boolean  @default(true)            // Ngưng hoạt động = false
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([customerid])
+}
+
+model CM_CATEGORY {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  categoryid    String   @id @db.VarChar(50)  // VD: PHONE, LAPTOP, DESKTOP, ACCESSORY
+  categoryname  String   @db.VarChar(100)      // Tên danh mục hiển thị
+  note          String?  @db.VarChar(255)
+  sortorder     Int?     
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([categoryid])
+}
+/// =====================
+/// DỮ LIỆU NHÂN VIÊN
+/// =====================
+model DT_STAFF {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  staffid     String   @id @db.VarChar(50)
+  staffname   String   @db.VarChar(50)  // SALE hoặc TECHNICAL
+  branchid      String   @db.VarChar(50)
+  basesalary    Decimal  @db.Decimal(15,3)
+  commissionrate Float?   // % hoa hồng trên đơn hàng
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([staffid])
+}
+
+// Doanh số kỹ thuật viên hoặc đơn giao hàng
+model DT_SERVICE_STAFF {
+  rowguid        String   @default(uuid()) @db.Uuid @unique
+  serviceid      String   @db.VarChar(50)   // FK tới CM_SERVICE
+  staffid        String?   @db.VarChar(50)   // nhân viên thực hiện dịch vụ, nếu bên thứ 3 thì sẽ ko có staffid
+  branchid      String   @db.VarChar(50)
+  customerid    String?  @db.VarChar(50)   // nếu khách hàng thân thiết
+
+  laborcost      Decimal  @db.Decimal(15,3)   // tiền công
+  partscost      Decimal  @db.Decimal(15,3)   // linh kiện
+  transportcost  Decimal? @db.Decimal(15,3)   // xăng xe
+  commission     Decimal? @db.Decimal(15,3)   // hoa hồng
+  contractvalue  Decimal? @db.Decimal(15,3)   // giá trị hợp đồng (nếu COMPANY+CONTRACT)
+
+  totalamount    Decimal  @db.Decimal(15,3)   // tổng cộng
+  status         String   @db.VarChar(1)     // NEW / DONE / CANCEL
+  servicedate    DateTime @db.Timestamp(6)
+  note           String?  @db.VarChar(255)
+
+  createdby      String   @db.VarChar(20)
+  createdtime    DateTime @db.Timestamp(6)
+  modifiedby     String?  @db.VarChar(20)
+  modifiedtime   DateTime? @db.Timestamp(6)
+
+  @@index([ branchid, staffid])
+}
+
+// Thống kê sale theo Quý, mỗi Quý 4 tháng để tính thưởng cho nv
+model DT_KPI_STAFF {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  kpiid        String   @id @db.VarChar(50) //KPI+YY/MM/DD
+  staffid   String   @db.VarChar(50)   // SALE hoặc TECHNICAL
+  branchid     String   @db.VarChar(50)
+  period       String   @db.VarChar(20)   // ví dụ: "2025-08" → KPI theo tháng, "Q3-2025" → KPI theo quý, "2025-H2" → KPI nửa năm
+  periodtype  String   @default("Q") @db.Char(1)        // W, M, Q, Y
+  target       Int   // số lượng, mục tiêu
+  achieved     Decimal @db.Decimal(15,3) @default(0) // doanh số thực tế
+  bonus        Decimal? @db.Decimal(15,3) // thưởng
+  penalty      Decimal? @db.Decimal(15,3) // phạt
+  note         String?  @db.VarChar(255)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([staffid, branchid, period])
+}
+
+/// =====================
+/// SẢN PHẨM & CHI TIẾT
+/// =====================
+model DT_ITEM {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  itemid       String   @id @db.VarChar(50)
+  categoryid   String   @db.VarChar(50)
+
+  itemname     String   @db.VarChar(255)
+  categoryname String?  @db.VarChar(100) // tên danh mục để hiển thị
+  brandid      String   @db.VarChar(50)
+  quantity     Int      @default(0)
+  model          String?  @db.VarChar(100)
+  color          String?  @db.VarChar(50)
+  condition      String?  @db.VarChar(50) // new, like new, used
+  weight         String?  @db.VarChar(100)
+
+  unitid       String   @db.VarChar(50)
+  slug         String   @unique @db.VarChar(255)
+  image        String?  @db.VarChar(255)
+  note         String?  @db.Text
+  
+  policy         String?  @db.VarChar(100)  // chính sách bảo hành
+
+  status         String?  @db.VarChar(20) // ACTIVE, OUT_OF_STOCK
+
+  ishot        Boolean  @default(false)  // sản phẩm bán chạy
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([itemid, categoryid])
+}
+
+model ITEM_COMPUTER_DETAIL {
+  rowguid        String   @default(uuid()) @db.Uuid @unique
+  refrowguid     String? @db.Uuid
+  itemid         String   @db.VarChar(50)
+
+  cpu            String?  @db.VarChar(100)
+  mainboard      String?  @db.VarChar(100)
+  ram            String?  @db.VarChar(100) // loại RAM + dung lượng
+  drive          String?  @db.VarChar(100) // SSD/HDD
+  vga            String?  @db.VarChar(100)
+  screen         String?  @db.VarChar(100)
+  port           String?  @db.VarChar(200)
+  psu            String?  @db.VarChar(100)
+  case           String?  @db.VarChar(100)
+  fan            String?  @db.VarChar(100)
+  pin           String?  @db.VarChar(100) // pin cho laptop
+
+  os             String?  @db.VarChar(100)  // Windows 11, Ubuntu 20.04
+  weight         String?  @db.VarChar(50)
+
+  price          Decimal  @db.Decimal(15,3)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([itemid])
+}
+
+model ITEM_PHONE_DETAIL {
+  rowguid        String   @id @default(uuid()) @db.Uuid
+  refrowguid     String? @db.Uuid     //lấy rowguid của item
+  itemid         String   @db.VarChar(50)
+
+  chipset        String?  @db.VarChar(100)
+  gpu            String?  @db.VarChar(100)
+  ram           String?  @db.VarChar(50)   // 8GB, 12GB
+  storage        String?  @db.VarChar(50)   // 128GB, 256GB
+  expandable     Boolean? @default(false)   // hỗ trợ thẻ nhớ
+
+  size   String?  @db.VarChar(50)   // 6.7 inch
+  type   String?  @db.VarChar(50)   // AMOLED, IPS
+  refresh  String?  @db.VarChar(50)   // 120Hz
+  resolution     String?  @db.VarChar(50)   // FHD+, QHD+
+  
+  camerarear    String?  @db.VarChar(200) // Camera sau
+  camerafront   String?  @db.VarChar(200) // Camera trước
+  battery        String?  @db.VarChar(50)   // 5000 mAh
+  charging       String?  @db.VarChar(100)  // 67W Fast charge
+
+  sim            String?  @db.VarChar(50)   // Dual SIM, eSIM
+  network        String?  @db.VarChar(50)   // 5G, 4G
+  wifi           String?  @db.VarChar(50)
+  bluetooth      String?  @db.VarChar(50)
+  nfc            Boolean? @default(false) // có NFC không
+  usb            String?  @db.VarChar(50) // Type-C, Lightning
+  audiojack     Boolean? @default(false) // có jack 3.5mm không
+  gps            String?  @db.VarChar(50)
+  pin           String?  @db.VarChar(100)  // Loại pin, dung lượng
+
+  osversion     String?  @db.VarChar(100)
+  waterresist   String?  @db.VarChar(50)   // IP67, IP68
+
+  price          Decimal  @db.Decimal(15,3)
+
+  createdby      String   @db.VarChar(20)
+  createdtime    DateTime @db.Timestamp(6)
+  modifiedby     String?  @db.VarChar(20)
+  modifiedtime   DateTime? @db.Timestamp(6)
+
+  @@index([itemid])
+}
+
+model ITEM_IMAGE {
+  rowguid     String   @default(uuid()) @db.Uuid @unique
+  refrowguid  String? @db.Uuid     //lấy rowguid của item
+  imageid      String   @db.VarChar(50)
+  imageurl    String   @db.VarChar(500)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([imageid])
+}
+
+model ITEM_PRIVILEGES {
+  rowguid        String   @default(uuid()) @db.Uuid @unique
+  refrowguid  String? @db.Uuid     //lấy rowguid của item
+  privilegeid      String   @db.VarChar(50)
+  content     String   @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([privilegeid])
+}
+
+model ITEM_GIFTS {
+  rowguid        String   @default(uuid()) @db.Uuid @unique
+  refrowguid  String? @db.Uuid     //lấy rowguid của item
+  giftid      String   @db.VarChar(50)
+  content     String   @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([giftid])
+}
+
+/// =====================
+/// ĐƠN HÀNG
+/// =====================
+model ORDERS_SERVICE {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  orderid       String   @id @db.VarChar(50)
+
+  branchid      String   @db.VarChar(50)
+  staffid       String   @db.VarChar(50)   // tham chiếu nhân viên
+  customerid    String   @db.VarChar(50)
+  
+  ordertype     String   @db.Char(1)       // S = Sales Order, T = Technical Order
+  currencyid    String   @db.VarChar(50)
+  paymentid     String   @db.VarChar(50)
+  thirdpartyid  String?  @db.VarChar(50)   // Misa, VNPay...
+
+  status        String   @db.Char(1)       // C=created, P=processing, S=shipped, X=cancelled
+  invoicetype   String?  @db.Char(1)       // N=Không xuất, R=Hóa đơn đỏ, B=Hóa đơn 3 liên
+  servicefee    Decimal? @db.Decimal(15,3) // phí dịch vụ bổ sung
+  paydate       DateTime? @db.Timestamp(6)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+  
+  @@index([branchid, staffid, status])
+}
+
+
+model ORDERS_DETAIL {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  refrowguid  String? @db.Uuid // lấy lệnh dịch vụ
+
+  orderid      String   @db.VarChar(50)   // FK -> ORDERS_SERVICE
+  itemid       String?  @db.VarChar(50)   // Nếu là hàng hóa
+  privilegeid String?  @db.VarChar(50)   // Nếu là đặc quyền
+  giftid      String?  @db.VarChar(50)   // Nếu là quà tặng
+  discountid   String?  @db.VarChar(50)
+  tariffid     String?  @db.VarChar(50) // nếu là dịch vụ thì lấy cước phí
+
+  quantity     Int
+  price        Decimal @db.Decimal(15,3)
+  discount     Decimal? @db.Decimal(15,3) // giảm giá trên mỗi dòng
+
+  taxid        String?  
+  taxrate      Decimal? @db.Decimal(15,3)
+  taxamount    Decimal? @db.Decimal(15,3)
+
+  tariffname   String?  @db.VarChar(100) // lưu lại tên cước phí tại thời điểm tạo đơn
+
+  subtotal     Decimal @db.Decimal(15,3) // quantity * price - discount
+  totalamount  Decimal @db.Decimal(15,3) // subtotal + tax
+
+  createdby    String   @db.VarChar(20)
+  createdtime  DateTime @db.Timestamp(6)
+  modifiedby   String?  @db.VarChar(20)
+  modifiedtime DateTime? @db.Timestamp(6)
+
+  @@index([orderid, itemid])
+}
+
+model SERVICE_LOG {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  serviceid    String   @db.VarChar(50)
+  orderid      String   @db.VarChar(50)
+  provider     String?  @db.VarChar(50)  // Đơn vị vận chuyển (GHN, GHTK...)
+  trackingid   String? @db.VarChar(100) // Mã vận đơn
+  servicefee  Decimal? @db.Decimal(15,3) //Phí vận chuyển, nếu nội thành free, còn ngoại thành thì tính dựa số tiền bên thứ 3 khai báo
+  status       String @db.Char(1) // C: Tạo lệnh vận chuyển, chưa giao, P: Đang xử lý vận chuyển, S: Đã gửi hàng cho đơn vị vận chuyển, D: Đã giao hàng thành công, X: Đơn vận chuyển bị hủy, R: Hàng bị trả lại
+  shipdate     DateTime? @db.Timestamp(6)
+
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([orderid, serviceid])
+}
+
+/// =====================
+/// HÓA ĐƠN
+/// =====================
+model INVOICE {
+  rowguid       String   @default(uuid()) @db.Uuid @unique
+  invoiceid     String   @id @db.VarChar(50)      // Mã hóa đơn
+  orderid       String?  @db.VarChar(50)         // Liên kết đơn hàng nếu có
+  branchid      String   @db.VarChar(50)         // Chi nhánh
+  invoiceno     String   @db.VarChar(50)     // số hóa đơn do cơ quan thuế cấp
+  customertaxid String?  @db.VarChar(50)     // mã số thuế khách hàng
+  customername  String?  @db.VarChar(150)    // tên công ty khách hàng
+  customeraddr  String?  @db.VarChar(250)    // địa chỉ công ty khách hàng  
+  invoicetype   String   @db.Char(1)             // R=red, C=vat, N=không xuất hóa đơn
+  subtotal      Decimal? @db.Decimal(15,3)                                  // total trước thuế
+  discount      Decimal? @db.Decimal(15,3)                                // giảm giá tổng
+  taxrate       Decimal? @db.Decimal(15,3)                                 // VAT áp dụng
+  taxamount     Decimal? @db.Decimal(15,3)                                 // số tiền thuế
+  totalamount   Decimal? @db.Decimal(15,3)                                  // Tổng tiền sau thuế, giảm giá
+  paymentid     String?  @db.VarChar(50)          // Hình thức thanh toán CK/TM
+  status        String   @db.Char(1)             // C=created, P=issued, X=cancelled
+  invoicedate   DateTime @db.Timestamp(6)        
+  draft         Boolean  @default(true)          // trạng thái nháp hóa đơn
+  issueddate    DateTime? @db.Timestamp(6)      // hóa đơn đc phát hành chính thức
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([invoiceid, orderid, branchid])
+}
+
+/// =====================
+/// KẾ HOẠCH TỒN KHO
+/// =====================
+model INV_PLAN {
+  rowguid         String   @default(uuid()) @db.Uuid @unique
+  refrowguid  String? @db.Uuid     //lấy rowguid của item
+  planid          String   @id @db.VarChar(50) // VD: PL-YYYYMMDD-XXXX
+  plantype        String @db.Char(1)     // 'PURCHASE' | 'TRANSFER' | 'RESERVE' | 'ADJUST'
+  branchid        String   @db.VarChar(50)     // chi nhánh đích (nơi sẽ tăng hoặc giữ hàng)
+  sourcebranchid String?  @db.VarChar(50)     // chi nhánh nguồn (chỉ dùng khi TRANSFER)
+  itemid          String   @db.VarChar(50)     // ITEM_DETAILS.itemid
+  quantity        Int
+  expectdate      DateTime @db.Timestamp(6)    // ngày dự kiến thực hiện/nhận
+  status          String @db.Char(1)      // 'DRAFT' | 'APPROVED' | 'COMPLETED' | 'CANCELLED'
+  orderid     String?  @db.VarChar(50)      // liên hệ đơn hàng khi là RESERVE
+  note            String?  @db.VarChar(255)
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([planid, branchid, itemid])
+}
+
+/// =====================
+/// TỒN KHO
+/// =====================
+model INV_STOCK {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  refrowguid   String?  @db.Uuid        // SKU hoặc chi tiết sản phẩm
+  branchid     String   @db.VarChar(50)
+  itemid       String   @db.VarChar(50)
+  quantity     Int      @default(0)     // tồn cuối
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([branchid, itemid])
+}
+
+model INV_STOCK_LOG {
+  rowguid      String   @default(uuid()) @db.Uuid @unique
+  refrowguid   String?  @db.Uuid      // SKU hoặc chi tiết sản phẩm
+  branchid     String   @db.VarChar(50)
+  itemid       String   @db.VarChar(50)
+  planid       String?  @db.VarChar(50) // liên kết kế hoạch nhập
+  orderid      String?  @db.VarChar(50) // liên kết đơn hàng xuất
+  quantity     Int
+  status       String   @db.Char(1)    // I=Nhập, O=Xuất, R=Trả, A=Điều chỉnh
+  reason       String?  @db.VarChar(255) // ghi chú lý do
+  
+  createdby     String   @db.VarChar(20)
+  createdtime   DateTime @db.Timestamp(6)
+  modifiedby    String?  @db.VarChar(20)
+  modifiedtime  DateTime? @db.Timestamp(6)
+
+  @@index([branchid, itemid, orderid])
+}
+            
+model TRANSACTION_LOG {
+  rowguid       String    @id @default(uuid()) @db.Uuid
+  userid        String    @db.VarChar(50)   // id hoặc mã nhân viên
+  username      String?   @db.VarChar(100)  // tên nhân viên (nếu cần lưu thêm)
+  action        String    @db.VarChar(100)  // hành động (CREATE_ORDER, UPDATE_ITEM, DELETE_INVOICE...)
+  note   String?   @db.VarChar(1000) // mô tả chi tiết
+  tableName     String?   @db.VarChar(100)  // bảng bị tác động (ORD_DETAIL, INVOICE...)
+  recordId      String?   @db.VarChar(100)  // khóa chính của record bị tác động
+  status        String?   @db.VarChar(20)   // SUCCESS, FAILED...
+  ipAddress     String?   @db.VarChar(50)   // IP của user
+  userAgent     String?   @db.VarChar(200)  // trình duyệt, thiết bị
+
+  createdtime   DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([userid, action, tableName])
+}
