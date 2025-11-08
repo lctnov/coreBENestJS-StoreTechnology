@@ -2,62 +2,102 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
-import * as dotenv from 'dotenv';
 import { ResponseInterceptor } from '@/libs/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 async function bootstrap() {
-  dotenv.config();
+  // --------------------------
+  // Chọn file .env phù hợp theo NODE_ENV
+  // --------------------------
+  const nodeEnv = process.env.NODE_ENV || 'local';
+  const envFile =
+    nodeEnv === 'docker'
+      ? path.join(__dirname, '..', '.env.docker')
+      : path.join(__dirname, '..', '.env.local');
 
+  dotenv.config({ path: envFile });
+
+  console.log(`🌍 Environment: ${nodeEnv}`);
+  console.log(`🔧 Loaded env file: ${envFile}`);
+
+  // --------------------------
+  // Tạo ứng dụng NestJS
+  // --------------------------
   const app = await NestFactory.create(AppModule);
 
-  // Thiết lập global prefix (ví dụ: http://localhost:3000/api/...)
+  // --------------------------
+  // Global prefix cho API (vd: http://localhost:3333/api)
+  // --------------------------
   app.setGlobalPrefix('api');
 
-  // Parse cookie từ request
+  // --------------------------
+  // Cookie parser để đọc cookie từ request
+  // --------------------------
   app.use(cookieParser());
 
-  // CORS: Cho phép frontend truy cập + gửi cookie
+  // --------------------------
+  // Cấu hình CORS cho frontend
+  // --------------------------
   app.enableCors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3001',
+    origin: process.env.CLIENT_URL || 'http://localhost:3001', // frontend URL
     credentials: true,
   });
 
-  // Global validation: DTO class-validator
+  // --------------------------
+  // DTO Validation toàn cục
+  // --------------------------
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
+      whitelist: true, // loại bỏ các field không khai báo trong DTO
+      forbidNonWhitelisted: true, // báo lỗi nếu có field thừa
+      transform: true, // tự động convert type
     }),
   );
 
-  // Đăng ký Interceptor toàn cục
+  // --------------------------
+  // Interceptor & Exception Filter toàn cục
+  // --------------------------
   const coreHandler = new ResponseInterceptor();
   app.useGlobalInterceptors(coreHandler);
   app.useGlobalFilters(coreHandler);
 
   // --------------------------
-  // Swagger configuration
+  // Swagger Documentation
   // --------------------------
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
     .setDescription('Swagger UI cho dự án NestJS')
     .setVersion('1.0')
-    .addBearerAuth() // nếu dùng JWT thì bật lên
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // --------------------------
+  // Cấu hình Swagger UI load JSON đúng port động
+  // --------------------------
+  // Thay vì hardcode localhost:3333, dùng relative URL `/api-json`
   SwaggerModule.setup('api-docs', app, document, {
-    swaggerOptions: { persistAuthorization: true }, // giữ lại token khi reload
+    swaggerOptions: {
+      persistAuthorization: true,
+      url: '/api-json', // relative URL, tự động dùng port hiện tại
+    },
   });
 
-  const PORT = process.env.PORT || 3333;
-  await app.listen(PORT);
+  // --------------------------
+  // Lắng nghe PORT động (local hoặc Docker)
+  // --------------------------
+  const PORT = Number(process.env.PORT) || 3333;
+  // '0.0.0.0' để container Docker có thể truy cập
+  await app.listen(PORT, '0.0.0.0');
+  const hostPort = nodeEnv === 'docker' ? 3334 : PORT;
 
   console.clear();
-  console.log(`🚀 Backend running at: http://localhost:${PORT}/api`);
-  console.log(`📖 Swagger docs available at: http://localhost:${PORT}/api-docs`);
+  console.log(`🚀 Backend running at: http://localhost:${hostPort}/api`);
+  console.log(`📖 Swagger docs: http://localhost:${hostPort}/api-docs`);
   console.log(`🌐 Frontend CORS allowed from: ${process.env.CLIENT_URL}`);
 }
+
 bootstrap();
